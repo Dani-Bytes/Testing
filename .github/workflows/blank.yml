@@ -19,7 +19,7 @@ jobs:
     - name: Set up .NET SDK
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: '5.0'  # Or another version you prefer
+        dotnet-version: '10.0'  # Or another version you prefer
 
     - name: Restore dependencies
       run: dotnet restore
