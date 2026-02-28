@@ -1,31 +1,70 @@
-name: C# CI Workflow
+# ============================================================
+# GitHub Actions – CI Pipeline with MC/DC NUnit Test Execution
+# Triggers automatically on every push or pull-request so that
+# the full MC/DC test suite runs whenever new code is added.
+# ============================================================
+
+name: CI – MC/DC NUnit Tests
 
 on:
-  push:
-    branches:
-      - main  # Triggers on push to the main branch
-  pull_request:
-    branches:
-      - main  # Triggers on pull requests targeting the main branch
+  push:                        # Run on every push to any branch
+  pull_request:                # Run on every pull request
 
 jobs:
-  build:
-    runs-on: ubuntu-latest  # You can use other OS if needed
+  test:
+    name: Build & Run MC/DC Tests
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      # --------------------------------------------------------
+      # 1. Check out the repository
+      # --------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up .NET SDK
-      uses: actions/setup-dotnet@v2
-      with:
-        dotnet-version: '10.0'  # Or another version you prefer
+      # --------------------------------------------------------
+      # 2. Install the .NET 8 SDK (matches TargetFramework net8.0)
+      # --------------------------------------------------------
+      - name: Set up .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
-    - name: Restore dependencies
-      run: dotnet restore
+      # --------------------------------------------------------
+      # 3. Restore NuGet dependencies
+      #    (NUnit 4.5.0, NUnit3TestAdapter 6.1.0, Microsoft.NET.Test.Sdk)
+      # --------------------------------------------------------
+      - name: Restore dependencies
+        run: dotnet restore
 
-    - name: Build the project
-      run: dotnet build --configuration Release
+      # --------------------------------------------------------
+      # 4. Build the project in Release configuration
+      # --------------------------------------------------------
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
 
-    - name: Run tests
-      run: dotnet test --configuration Release
+      # --------------------------------------------------------
+      # 5. Run MC/DC NUnit tests
+      #    --no-build   → skip re-build (already built above)
+      #    --logger     → produce a TRX report for CI visibility
+      #    --verbosity  → show each test name clearly in the log
+      # --------------------------------------------------------
+      - name: Run MC/DC NUnit Tests
+        run: >
+          dotnet test
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=mcdc-results.trx"
+          --logger "console;verbosity=detailed"
+
+      # --------------------------------------------------------
+      # 6. Upload the TRX test-results file as a build artefact
+      #    so it can be downloaded and reviewed from the Actions UI
+      # --------------------------------------------------------
+      - name: Upload test results
+        if: always()            # upload even if some tests fail
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcdc-test-results
+          path: '**/*.trx'
+          retention-days: 14
