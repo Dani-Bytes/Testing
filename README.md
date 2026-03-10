@@ -1,5 +1,7 @@
 # Order Search Algorithm Library — Software Testing Report
 
+[![CI – MC/DC NUnit Tests](https://github.com/Dani-Bytes/Testing/actions/workflows/ci.yml/badge.svg)](https://github.com/Dani-Bytes/Testing/actions/workflows/ci.yml)
+
 **Course:** Software Engineering / Software Testing  
 **Framework:** .NET 8.0 · NUnit 4.5.0 · Coverlet · ReportGenerator  
 **CI/CD Platform:** GitHub Actions  
