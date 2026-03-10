@@ -1,19 +1,31 @@
-# ============================================================
-# GitHub Actions – CI Pipeline with MC/DC NUnit Test Execution
-# Triggers automatically on every push or pull-request so that
-# the full MC/DC test suite runs whenever new code is added.
-# ============================================================
-
 name: CI – MC/DC NUnit Tests
 
 on:
   push:                        # Run on every push to any branch
   pull_request:                # Run on every pull request
 
+# ---------------------------------------------------------------------------
+# Two independent jobs:
+#   test-main    → runs ONLY when the target branch is main
+#                  Covers: LinearSearcher, BinarySearcher, OrderSearchManager
+#                  Category filter: MainBranch
+#
+#   test-feature → runs on every non-main push / feature-branch PR
+#                  Covers: InterpolationSearcher
+#                  Category filter: FeatureBranch
+# ---------------------------------------------------------------------------
+
 jobs:
-  test:
-    name: Build & Run MC/DC Tests
+  # ==========================================================================
+  # JOB 1 – Main branch: core searcher MC/DC tests
+  # Runs when: pushing directly to main  OR  a PR whose target is main
+  # ==========================================================================
+  test-main:
+    name: "[Main] Core Searchers MC/DC Tests"
     runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'pull_request' && github.base_ref == 'main')
 
     steps:
       # --------------------------------------------------------
@@ -32,7 +44,6 @@ jobs:
 
       # --------------------------------------------------------
       # 3. Restore NuGet dependencies
-      #    (NUnit 4.5.0, NUnit3TestAdapter 6.1.0, Microsoft.NET.Test.Sdk)
       # --------------------------------------------------------
       - name: Restore dependencies
         run: dotnet restore
@@ -44,27 +55,90 @@ jobs:
         run: dotnet build --configuration Release --no-restore
 
       # --------------------------------------------------------
-      # 5. Run MC/DC NUnit tests
-      #    --no-build   → skip re-build (already built above)
-      #    --logger     → produce a TRX report for CI visibility
-      #    --verbosity  → show each test name clearly in the log
+      # 5. Run MAIN-BRANCH tests only (Category=MainBranch)
+      #    Fixtures: LinearSearcherMCDCTests
+      #              BinarySearcherMCDCTests
+      #              OrderSearchManagerMCDCTests
       # --------------------------------------------------------
-      - name: Run MC/DC NUnit Tests
+      - name: Run Main Branch MC/DC Tests
         run: >
           dotnet test
           --configuration Release
           --no-build
-          --logger "trx;LogFileName=mcdc-results.trx"
+          --filter "Category=MainBranch"
+          --logger "trx;LogFileName=main-mcdc-results.trx"
           --logger "console;verbosity=detailed"
 
       # --------------------------------------------------------
-      # 6. Upload the TRX test-results file as a build artefact
-      #    so it can be downloaded and reviewed from the Actions UI
+      # 6. Upload TRX artefact
       # --------------------------------------------------------
-      - name: Upload test results
-        if: always()            # upload even if some tests fail
+      - name: Upload main branch test results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mcdc-test-results
+          name: main-mcdc-test-results
+          path: '**/*.trx'
+          retention-days: 14
+
+  # ==========================================================================
+  # JOB 2 – Feature branch: InterpolationSearcher MC/DC tests
+  # Runs when: pushing to any branch OTHER than main
+  #            OR a PR whose target is NOT main
+  # ==========================================================================
+  test-feature:
+    name: "[Feature] InterpolationSearcher MC/DC Tests"
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push'        && github.ref != 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.base_ref != 'main')
+
+    steps:
+      # --------------------------------------------------------
+      # 1. Check out the repository
+      # --------------------------------------------------------
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------------
+      # 2. Install the .NET 8 SDK
+      # --------------------------------------------------------
+      - name: Set up .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # --------------------------------------------------------
+      # 3. Restore NuGet dependencies
+      # --------------------------------------------------------
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # --------------------------------------------------------
+      # 4. Build the project in Release configuration
+      # --------------------------------------------------------
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      # --------------------------------------------------------
+      # 5. Run FEATURE-BRANCH tests only (Category=FeatureBranch)
+      #    Fixture: InterpolationSearcherMCDCTests
+      # --------------------------------------------------------
+      - name: Run Feature Branch MC/DC Tests
+        run: >
+          dotnet test
+          --configuration Release
+          --no-build
+          --filter "Category=FeatureBranch"
+          --logger "trx;LogFileName=feature-mcdc-results.trx"
+          --logger "console;verbosity=detailed"
+
+      # --------------------------------------------------------
+      # 6. Upload TRX artefact
+      # --------------------------------------------------------
+      - name: Upload feature branch test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feature-mcdc-test-results
           path: '**/*.trx'
           retention-days: 14

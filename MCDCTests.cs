@@ -14,6 +14,7 @@ namespace Testing;
 // =============================================================================
 
 [TestFixture]
+[Category("MainBranch")]
 public class LinearSearcherMCDCTests
 {
     private LinearSearcher _searcher = null!;
@@ -87,6 +88,7 @@ public class LinearSearcherMCDCTests
 // =============================================================================
 
 [TestFixture]
+[Category("MainBranch")]
 public class BinarySearcherMCDCTests
 {
     private BinarySearcher _searcher = null!;
@@ -187,6 +189,7 @@ public class BinarySearcherMCDCTests
 // =============================================================================
 
 [TestFixture]
+[Category("FeatureBranch")]
 public class InterpolationSearcherMCDCTests
 {
     private InterpolationSearcher _searcher = null!;
@@ -311,6 +314,7 @@ public class InterpolationSearcherMCDCTests
 // =============================================================================
 
 [TestFixture]
+[Category("MainBranch")]
 public class OrderSearchManagerMCDCTests
 {
     private OrderSearchManager _manager = null!;
@@ -321,7 +325,7 @@ public class OrderSearchManagerMCDCTests
     public void Setup()
     {
         _manager = new OrderSearchManager();
-        _orders  = new[] { new Order(10, "Alice"), new Order(20, "Bob"), new Order(30, "Carol") };
+        _orders = new[] { new Order(10, "Alice"), new Order(20, "Bob"), new Order(30, "Carol") };
     }
 
     // -------------------------------------------------------------------------
